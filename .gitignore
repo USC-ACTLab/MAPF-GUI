@@ -1,0 +1,6 @@
+__pycache__/
+venv1/
+test.py
+mytest*
+grid.py
+*.png
