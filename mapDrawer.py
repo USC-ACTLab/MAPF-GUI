@@ -1,6 +1,8 @@
 import PySimpleGUI as sg
 import re
 import os
+import subprocess
+import sys
 import textwrap
 
 
@@ -11,8 +13,12 @@ layout = [[sg.Text('Simple MAPF map drawer')],
            sg.InputText(default_text='8', key='-X-', size=(3, 1)), sg.Text('Y'),
            sg.InputText(default_text='8', key='-Y-', size=(3, 1))],
           [sg.HSeparator()],
-          [sg.Text('Map viewer')],
+          [sg.Text('Map Viewer')],
           [sg.In(default_text=str(os.getcwd())+"/test.yaml", key='-VIEW-'), sg.FolderBrowse(), sg.Button('View')],
+          [sg.HSeparator()],
+          [sg.Text('Instance Solver')],
+          [sg.In(default_text="./cbs -i test.yaml -o test_out.yaml", key='-IN-'), sg.Button('Solve'), sg.Button('Results')],
+          [sg.Output(size=(60,5))],
           [sg.Button('Quit')]]
 
 window1 = sg.Window('mapDrawer', layout, finalize=True, location=(1200, 600))
@@ -38,6 +44,18 @@ def mapGenerate(x, y):
     #     for j in range(y):
     #         window[(i, j)].bind('<B1-Enter>', 'E')
     return window
+
+
+def runCommand(cmd, timeout=None, window=None):
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    output = ''
+    for line in p.stdout:
+        line = line.decode(errors='replace' if (sys.version_info) < (3, 5) else 'backslashreplace').rstrip()
+        output += line
+        print(line)
+        window.Refresh() if window else None        # yes, a 1-line if, so shoot me
+    retval = p.wait(timeout)
+    return (retval, output)                         # also return the output just for fun
 
 while True:
     windows, events, values = sg.read_all_windows()
@@ -176,7 +194,13 @@ while True:
         print(filename)
         os.system(f'python3 visualize_map.py {filename} &')
 
+    if events == 'Results':
+        filename = windows['-IN-'].get()
+        schedule = filename.split()[-1]
+        map = filename.split()[2]
+        os.system(f'python3 visualize_co.py {map} {schedule} &')
 
-
+    if events == 'Solve':
+        runCommand(cmd=values['-IN-'])
 
 window1.close()
