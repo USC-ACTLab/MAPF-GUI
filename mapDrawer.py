@@ -36,7 +36,7 @@ num_agent = 0
 def mapGenerate(x, y):
     layout = [[sg.Button('', size=(2, 2), pad=(0, 0), key=(i, j), button_color='white', metadata='Empty', tooltip=f"({i},{j})") for i in range(x)]
               for j in range(y-1, -1, -1)]
-    layout2 = [[sg.Button('Obs'), sg.Button('Agent'), sg.Button('Undo'), sg.Button('Reset'), sg.Button('Done')],
+    layout2 = [[sg.Button('Obs'), sg.Button('Agent'), sg.Button('Undo'), sg.Button('Reset'), sg.Button('Done'), sg.Button('Done_2')],
                [sg.In(default_text=str(os.getcwd()) + "/test.yaml", key='-SAVE-', enable_events=True), sg.FolderBrowse()]]
 
     window = sg.Window('mapGen', layout + layout2, finalize=True, location=(750, 600))
@@ -175,6 +175,39 @@ while True:
                 sg.popup('No agents or start and goal didn`t match!',text_color='red', location=window2.current_location())
 
             f.close()
+        if events == 'Done_2':  # save the map
+            if len(cmd_stack) and num_agent:
+                done_obs, done_start, done_goal = ([] for _ in range(3))
+                for i in range(len(cmd_stack)):
+                    if cmd_stack[i][0] == 'Obs':
+                        done_obs.append(cmd_stack[i][1])
+                    elif cmd_stack[i][0] == 'Start':
+                        done_start.append(cmd_stack[i][1])
+                    else:
+                        done_goal.append(cmd_stack[i][1])
+                    # cmd_stack.pop()
+                #  setup json
+                filename = window2['-SAVE-'].get()
+                map_path = filename.split(".")[0] + '_map.yaml'
+                with open(filename, 'w') as f:
+                    f.write('agents:\n')
+                    for i in range(num_agent):
+                        f.write(f"- goal:\n")
+                        f.write(f"  - {done_goal[i][0]}\n")
+                        f.write(f"  - {done_goal[i][1]}\n")
+                        f.write(f"  name: agent{i}\n")
+                        f.write(f"  start: \n")
+                        f.write(f"  - {done_start[i][0]}\n")
+                        f.write(f"  - {done_start[i][1]}\n")
+                    f.write(f"map_path: {os.path.split(map_path)[1]}")
+                f.close()
+                with open(map_path, 'w') as f2:
+                    f2.write(f"dimensions: [{DIM_X}, {DIM_Y}]\nobstacles:\n")
+                    for i in range(len(done_obs)):
+                        f2.write(f"- [{done_obs[i][0]}, {done_obs[i][1]}]\n")
+                f2.close()
+            else:
+                sg.popup('No agents or start and goal didn`t match!',text_color='red', location=window2.current_location())
         if events == '-SAVE-':
             a = window2[events].get()
             if ".yaml" not in a:

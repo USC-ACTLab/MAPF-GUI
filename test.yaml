@@ -1,21 +1,86 @@
 agents:
--   goal: [5, 5]
-    name: agent0
-    start: [0, 1]
--   goal: [6, 4]
-    name: agent1
-    start: [3, 5]
--   goal: [0, 2]
-    name: agent2
-    start: [5, 3]
-map:
-    dimensions: [8, 8]
-    obstacles:
-    - [3, 4]
-    - [4, 4]
-    - [4, 5]
-    - [4, 3]
-    - [5, 4]
-    - [0, 0]
-    - [1, 0]
-    - [1, 1]
+- goal:
+  - 24
+  - 2
+  name: agent0
+  start: 
+  - 0
+  - 2
+- goal:
+  - 31
+  - 2
+  name: agent1
+  start: 
+  - 0
+  - 1
+- goal:
+  - 38
+  - 2
+  name: agent2
+  start: 
+  - 0
+  - 0
+- goal:
+  - 20
+  - 1
+  name: agent3
+  start: 
+  - 2
+  - 0
+- goal:
+  - 22
+  - 1
+  name: agent4
+  start: 
+  - 9
+  - 0
+- goal:
+  - 24
+  - 1
+  name: agent5
+  start: 
+  - 17
+  - 2
+- goal:
+  - 27
+  - 1
+  name: agent6
+  start: 
+  - 4
+  - 2
+- goal:
+  - 29
+  - 1
+  name: agent7
+  start: 
+  - 10
+  - 0
+- goal:
+  - 31
+  - 1
+  name: agent8
+  start: 
+  - 18
+  - 2
+- goal:
+  - 34
+  - 1
+  name: agent9
+  start: 
+  - 5
+  - 2
+- goal:
+  - 36
+  - 1
+  name: agent10
+  start: 
+  - 11
+  - 2
+- goal:
+  - 38
+  - 1
+  name: agent11
+  start: 
+  - 15
+  - 0
+map_path: test_map.yaml
