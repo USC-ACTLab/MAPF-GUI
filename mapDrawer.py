@@ -5,6 +5,7 @@ import subprocess
 import sys
 import textwrap
 
+import yaml
 
 sg.theme('Topanga')
 
@@ -13,8 +14,11 @@ layout = [[sg.Text('Simple MAPF map drawer')],
            sg.InputText(default_text='8', key='-X-', size=(3, 1)), sg.Text('Y'),
            sg.InputText(default_text='8', key='-Y-', size=(3, 1))],
           [sg.HSeparator()],
-          [sg.Text('Map Viewer')],
-          [sg.In(default_text=str(os.getcwd())+"/test.yaml", key='-VIEW-'), sg.FolderBrowse(), sg.Button('View')],
+          [sg.Text('Map Editor')],
+          [sg.In(key='-VIEW2-'), sg.FileBrowse(), sg.Button('Edit')],
+          [sg.HSeparator()],
+          [sg.Text('Map View')],
+          [sg.In(default_text=str(os.getcwd())+"/test.yaml", key='-VIEW-'), sg.FileBrowse(), sg.Button('View')],
           [sg.HSeparator()],
           [sg.Text('Instance Solver')],
           [sg.In(default_text="./cbs -i test.yaml -o test_out.yaml", key='-IN-'), sg.Button('Solve'), sg.Button('Results')],
@@ -221,6 +225,13 @@ while True:
         state_st = 0
         state_adding = 0
         num_agent = 0
+
+    if events == 'Edit':
+        filename = windows['-VIEW2-'].get()
+        with open(filename) as map_file:
+            mapdata = yaml.load(map_file, Loader=yaml.FullLoader)
+        dim = mapdata["dimensions"]
+        window2 = mapGenerate(int(dim[0]), int(dim[1]))
 
     if events == 'View':
         filename = windows['-VIEW-'].get()
