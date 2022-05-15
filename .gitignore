@@ -5,3 +5,5 @@ test.py
 mytest*
 grid.py
 *.png
+*.yaml
+*.mp4
