@@ -37,9 +37,22 @@ cmd_stack = []
 num_agent = 0
 
 
-def mapGenerate(x, y):
-    layout = [[sg.Button('', size=(2, 2), pad=(0, 0), key=(i, j), button_color='white', metadata='Empty', tooltip=f"({i},{j})") for i in range(x)]
-              for j in range(y-1, -1, -1)]
+def mapGenerate(x=1, y=1, obs=None, cmd_stack=None):
+    if not obs:
+        layout = [[sg.Button('', size=(2, 2), pad=(0, 0), key=(i, j), button_color='white', metadata='Empty', tooltip=f"({i},{j})") for i in range(x)]
+                  for j in range(y-1, -1, -1)]
+    else:
+        layout = []
+        for j in range(y-1, -1, -1):
+            row = []
+            for i in range(x):
+                if [i, j] in obs:
+                    row.append(sg.Button('', size=(2, 2), pad=(0, 0), key=(i, j), button_color='black', metadata='Obs', tooltip=f"({i}, {j})"))
+                    cmd_stack.append(['Obs', (i, j)])
+                else:
+                    row.append(sg.Button('', size=(2, 2), pad=(0, 0), key=(i, j), button_color='white', metadata='Empty', tooltip=f"({i}, {j})"))
+            layout.append(row)
+
     layout2 = [[sg.Button('Obs'), sg.Button('Agent'), sg.Button('Undo'), sg.Button('Reset'), sg.Button('Done'), sg.Button('Done_2')],
                [sg.In(default_text=str(os.getcwd()) + "/test.yaml", key='-SAVE-', enable_events=True), sg.FolderBrowse()]]
 
@@ -230,8 +243,11 @@ while True:
         filename = windows['-VIEW2-'].get()
         with open(filename) as map_file:
             mapdata = yaml.load(map_file, Loader=yaml.FullLoader)
-        dim = mapdata["dimensions"]
-        window2 = mapGenerate(int(dim[0]), int(dim[1]))
+        DIM_X = int(mapdata["dimensions"][0])
+        DIM_Y = int(mapdata["dimensions"][1])
+        obs = mapdata["obstacles"]
+        cmd_stack = []
+        window2 = mapGenerate(DIM_X, DIM_Y, obs, cmd_stack)
 
     if events == 'View':
         filename = windows['-VIEW-'].get()
