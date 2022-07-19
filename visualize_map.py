@@ -131,13 +131,10 @@ class Animation:
         return self.patches + self.artists
 
 
-
-
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("map", help="input file containing map")
+    parser.add_argument("--legacy", type=int, default=1, help="new map or legacy format (defult is legacy(1), 0 for new format)")
     parser.add_argument('--video', dest='video', default=None,
                         help="output video file (or leave empty to show on screen)")
     parser.add_argument("--speed", type=int, default=1, help="speedup-factor")
@@ -145,6 +142,16 @@ if __name__ == "__main__":
 
     with open(args.map) as map_file:
         map = yaml.load(map_file, Loader=yaml.FullLoader)
+
+    if not args.legacy:
+        # Using new map format. The map is in map["map_path"]
+        map_path = map["map_path"]
+        with open(map_path) as map_path:
+            actual_map = yaml.load(map_path, Loader=yaml.FullLoader)
+
+        # create new dict file to match the old map format
+        new_map = {"map": actual_map, "agents": map["agents"]}
+        map = new_map
 
     animation = Animation(map)
 

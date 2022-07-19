@@ -5,6 +5,7 @@ import subprocess
 import sys
 import textwrap
 
+import yaml
 
 sg.theme('Topanga')
 
@@ -13,7 +14,15 @@ layout = [[sg.Text('Simple MAPF map drawer')],
            sg.InputText(default_text='8', key='-X-', size=(3, 1)), sg.Text('Y'),
            sg.InputText(default_text='8', key='-Y-', size=(3, 1))],
           [sg.HSeparator()],
-          [sg.Text('Map Viewer')],
+          [sg.Text('Map format: '), sg.Radio('Legacy', 'Group1', key='-LEGACY-', default=True),
+           sg.Radio('NewFormat', 'Group1')],
+          [sg.HSeparator()],
+          [sg.Text('Map Editor')],
+          [sg.In(key='-VIEW2-'), sg.FileBrowse(), sg.Button('Edit')],
+          [sg.HSeparator()],
+          [sg.Text('Map View')],
+          # [sg.In(default_text=str(os.getcwd())+"/test.yaml", key='-VIEW-'), sg.FileBrowse(),
+          #  sg.Combo(['Legacy', 'NewFormat'], readonly=True, key='-LEGACY-', default_value='Legacy'), sg.Button('View')],
           [sg.In(default_text=str(os.getcwd())+"/test.yaml", key='-VIEW-'), sg.FileBrowse(), sg.Button('View')],
           [sg.HSeparator()],
           [sg.Text('Instance Solver')],
@@ -33,10 +42,23 @@ cmd_stack = []
 num_agent = 0
 
 
-def mapGenerate(x, y):
-    layout = [[sg.Button('', size=(2, 2), pad=(0, 0), key=(i, j), button_color='white', metadata='Empty', tooltip=f"({i},{j})") for i in range(x)]
-              for j in range(y-1, -1, -1)]
-    layout2 = [[sg.Button('Obs'), sg.Button('Agent'), sg.Button('Undo'), sg.Button('Reset'), sg.Button('Done')],
+def mapGenerate(x=1, y=1, obs=None, cmd_stack=None):
+    if not obs:
+        layout = [[sg.Button('', size=(2, 2), pad=(0, 0), key=(i, j), button_color='white', metadata='Empty', tooltip=f"({i},{j})") for i in range(x)]
+                  for j in range(y-1, -1, -1)]
+    else:
+        layout = []
+        for j in range(y-1, -1, -1):
+            row = []
+            for i in range(x):
+                if [i, j] in obs:
+                    row.append(sg.Button('', size=(2, 2), pad=(0, 0), key=(i, j), button_color='black', metadata='Obs', tooltip=f"({i}, {j})"))
+                    cmd_stack.append(['Obs', (i, j)])
+                else:
+                    row.append(sg.Button('', size=(2, 2), pad=(0, 0), key=(i, j), button_color='white', metadata='Empty', tooltip=f"({i}, {j})"))
+            layout.append(row)
+
+    layout2 = [[sg.Button('Obs'), sg.Button('Agent'), sg.Button('Undo'), sg.Button('Reset'), sg.Button('Done'), sg.Button('Done_2')],
                [sg.In(default_text=str(os.getcwd()) + "/test.yaml", key='-SAVE-', enable_events=True), sg.FolderBrowse()]]
 
     window = sg.Window('mapGen', layout + layout2, finalize=True, location=(750, 600))
@@ -175,6 +197,39 @@ while True:
                 sg.popup('No agents or start and goal didn`t match!',text_color='red', location=window2.current_location())
 
             f.close()
+        if events == 'Done_2':  # save the map
+            if len(cmd_stack) and num_agent:
+                done_obs, done_start, done_goal = ([] for _ in range(3))
+                for i in range(len(cmd_stack)):
+                    if cmd_stack[i][0] == 'Obs':
+                        done_obs.append(cmd_stack[i][1])
+                    elif cmd_stack[i][0] == 'Start':
+                        done_start.append(cmd_stack[i][1])
+                    else:
+                        done_goal.append(cmd_stack[i][1])
+                    # cmd_stack.pop()
+                #  setup json
+                filename = window2['-SAVE-'].get()
+                map_path = filename.split(".")[0] + '_map.yaml'
+                with open(filename, 'w') as f:
+                    f.write('agents:\n')
+                    for i in range(num_agent):
+                        f.write(f"- goal:\n")
+                        f.write(f"  - {done_goal[i][0]}\n")
+                        f.write(f"  - {done_goal[i][1]}\n")
+                        f.write(f"  name: agent{i}\n")
+                        f.write(f"  start: \n")
+                        f.write(f"  - {done_start[i][0]}\n")
+                        f.write(f"  - {done_start[i][1]}\n")
+                    f.write(f"map_path: {os.path.split(map_path)[1]}")
+                f.close()
+                with open(map_path, 'w') as f2:
+                    f2.write(f"dimensions: [{DIM_X}, {DIM_Y}]\nobstacles:\n")
+                    for i in range(len(done_obs)):
+                        f2.write(f"- [{done_obs[i][0]}, {done_obs[i][1]}]\n")
+                f2.close()
+            else:
+                sg.popup('No agents or start and goal didn`t match!', text_color='red', location=window2.current_location())
         if events == '-SAVE-':
             a = window2[events].get()
             if ".yaml" not in a:
@@ -189,10 +244,25 @@ while True:
         state_adding = 0
         num_agent = 0
 
+    if events == 'Edit':
+        # current map editor only works for NEW format
+        filename = windows['-VIEW2-'].get()
+        with open(filename) as map_file:
+            mapdata = yaml.load(map_file, Loader=yaml.FullLoader)
+        DIM_X = int(mapdata["dimensions"][0])
+        DIM_Y = int(mapdata["dimensions"][1])
+        obs = mapdata["obstacles"]
+        cmd_stack = []
+        window2 = mapGenerate(DIM_X, DIM_Y, obs, cmd_stack)
+
     if events == 'View':
         filename = windows['-VIEW-'].get()
         print(filename)
-        os.system(f'python3 visualize_map.py {filename} &')
+        legacy = windows['-LEGACY-'].get()
+        if legacy == True:
+            os.system(f'python3 visualize_map.py {filename} &')
+        else:
+            os.system(f'python3 visualize_map.py {filename} --legacy 0 &')
 
     if events == 'Results':
         filename = windows['-IN-'].get()

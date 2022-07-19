@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+### This is the map/plan viewer for the MAPF instance generator project
 import random
 
 import yaml
@@ -24,11 +25,12 @@ Colors = cmap.colors
 Colors_bright = [[x*0.8 for x in y] for y in Colors]
 
 class Animation:
-    def __init__(self, map, schedule):
+    def __init__(self, config, schedule, map):
+        self.config = config
         self.map = map
         self.schedule = schedule
 
-        aspect = map["map"]["dimensions"][0] / map["map"]["dimensions"][1]
+        aspect = map["dimensions"][0] / map["dimensions"][1]
 
         self.fig = plt.figure(frameon=False, figsize=(4 * aspect, 4))
         self.ax = self.fig.add_subplot(111, aspect='equal')
@@ -45,14 +47,19 @@ class Animation:
         # create boundary patch
         xmin = -0.5
         ymin = -0.5
-        xmax = map["map"]["dimensions"][0] - 0.5
-        ymax = map["map"]["dimensions"][1] - 0.5
+        xmax = map["dimensions"][0] - 0.5
+        ymax = map["dimensions"][1] - 0.5
 
-        n_agents = len(map["agents"])
+        n_agents = len(config["agents"])
 
         # self.ax.relim()
         plt.xlim(xmin, xmax)
         plt.ylim(ymin, ymax)
+        minor_ticks_x = np.arange(xmin, xmax, 1)
+        minor_ticks_y = np.arange(ymin, ymax, 1)
+        self.ax.set_xticks(minor_ticks_x, minor=True)
+        self.ax.set_yticks(minor_ticks_y, minor=True)
+        plt.grid(which='minor', axis='both', linewidth=2)
         # self.ax.set_xticks([])
         # self.ax.set_yticks([])
         # plt.axis('off')
@@ -60,14 +67,14 @@ class Animation:
         # self.ax.axis('off')
 
         self.patches.append(Rectangle((xmin, ymin), xmax - xmin, ymax - ymin, facecolor='none', edgecolor='red'))
-        for o in map["map"]["obstacles"]:
+        for o in map["obstacles"]:
             x, y = o[0], o[1]
             self.patches.append(Rectangle((x - .5, y - 0.5), 1, 1, facecolor='red', edgecolor='red'))
 
         # create agents:
         self.T = 0
         # draw goals first
-        for d, i in zip(map["agents"], range(0, len(map["agents"]))):
+        for d, i in zip(config["agents"], range(0, len(config["agents"]))):
             name = d["name"]
             if "goal" in d:
                 goals = [d["goal"]]
@@ -82,7 +89,7 @@ class Animation:
                 self.agent_names[name].set_verticalalignment('center')
                 self.artists.append(self.agent_names[name])
 
-        for d, i in zip(map["agents"], range(0, len(map["agents"]))):
+        for d, i in zip(config["agents"], range(0, len(config["agents"]))):
             name = d["name"]
             self.agents[name] = Circle((d["start"][0], d["start"][1]), 0.3, facecolor=Colors[i % len(Colors)],
                                        edgecolor=Colors_bright[i % len(Colors)], linewidth=4)
@@ -142,13 +149,14 @@ class Animation:
         for agent_name in self.schedule["schedule"]:
             agent = schedule["schedule"][agent_name]
             pos = self.getState(i / 10, agent)
+            # pos = self.getState(i, agent)
             p = (pos[0], pos[1])
             # self.agents[agent_name].center = p
             if isinstance(self.agents[agent_name], Circle):
                 self.agents[agent_name].center = p
             else:
                 self.agents[agent_name].set_xy((p[0]-.25, p[1]-.25))
-            self.agent_names[agent_name].set_position(p )
+            self.agent_names[agent_name].set_position(p)
 
         # reset all colors
         for _, agent in self.agents.items():
@@ -188,31 +196,27 @@ class Animation:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("map", help="input file containing map")
+    parser.add_argument("config", help="configuration for agents")
     parser.add_argument("schedule", help="schedule for agents")
-    parser.add_argument("--legacy", type=int, default=1, help="new map or legacy format (defult is legacy(1), 0 for new format)")
     parser.add_argument('--video', dest='video', default=None,
                         help="output video file (or leave empty to show on screen)")
     parser.add_argument("--speed", type=int, default=1, help="speedup-factor")
     args = parser.parse_args()
 
-    with open(args.map) as map_file:
-        map = yaml.load(map_file, Loader=yaml.FullLoader)
+    with open(args.config) as config_file:
+        config = yaml.load(config_file, Loader=yaml.FullLoader)
 
     with open(args.schedule) as states_file:
         schedule = yaml.load(states_file, Loader=yaml.FullLoader)
 
-    if not args.legacy:
-        # Using new map format. The map is in map["map_path"]
-        map_path = map["map_path"]
-        with open(map_path) as map_path:
-            actual_map = yaml.load(map_path, Loader=yaml.FullLoader)
+    with open(config["map_path"]) as map_file:
+        map_config = yaml.load(map_file, Loader=yaml.FullLoader)
 
-        # create new dict file to match the old map format
-        new_map = {"map": actual_map, "agents": map["agents"]}
-        map = new_map
-
-    animation = Animation(map, schedule)
+    cost = 0
+    for i in range(0, len(schedule["schedule"])):
+        cost += schedule["schedule"]["agent" + str(i)][-1]["t"]
+    print(f"Total cost is: {cost}")
+    animation = Animation(config, schedule, map_config)
 
     if args.video:
         animation.save(args.video, args.speed)
