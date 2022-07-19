@@ -14,10 +14,15 @@ layout = [[sg.Text('Simple MAPF map drawer')],
            sg.InputText(default_text='8', key='-X-', size=(3, 1)), sg.Text('Y'),
            sg.InputText(default_text='8', key='-Y-', size=(3, 1))],
           [sg.HSeparator()],
+          [sg.Text('Map format: '), sg.Radio('Legacy', 'Group1', key='-LEGACY-', default=True),
+           sg.Radio('NewFormat', 'Group1')],
+          [sg.HSeparator()],
           [sg.Text('Map Editor')],
           [sg.In(key='-VIEW2-'), sg.FileBrowse(), sg.Button('Edit')],
           [sg.HSeparator()],
           [sg.Text('Map View')],
+          # [sg.In(default_text=str(os.getcwd())+"/test.yaml", key='-VIEW-'), sg.FileBrowse(),
+          #  sg.Combo(['Legacy', 'NewFormat'], readonly=True, key='-LEGACY-', default_value='Legacy'), sg.Button('View')],
           [sg.In(default_text=str(os.getcwd())+"/test.yaml", key='-VIEW-'), sg.FileBrowse(), sg.Button('View')],
           [sg.HSeparator()],
           [sg.Text('Instance Solver')],
@@ -224,7 +229,7 @@ while True:
                         f2.write(f"- [{done_obs[i][0]}, {done_obs[i][1]}]\n")
                 f2.close()
             else:
-                sg.popup('No agents or start and goal didn`t match!',text_color='red', location=window2.current_location())
+                sg.popup('No agents or start and goal didn`t match!', text_color='red', location=window2.current_location())
         if events == '-SAVE-':
             a = window2[events].get()
             if ".yaml" not in a:
@@ -240,6 +245,7 @@ while True:
         num_agent = 0
 
     if events == 'Edit':
+        # current map editor only works for NEW format
         filename = windows['-VIEW2-'].get()
         with open(filename) as map_file:
             mapdata = yaml.load(map_file, Loader=yaml.FullLoader)
@@ -252,7 +258,11 @@ while True:
     if events == 'View':
         filename = windows['-VIEW-'].get()
         print(filename)
-        os.system(f'python3 visualize_map.py {filename} &')
+        legacy = windows['-LEGACY-'].get()
+        if legacy == True:
+            os.system(f'python3 visualize_map.py {filename} &')
+        else:
+            os.system(f'python3 visualize_map.py {filename} --legacy 0 &')
 
     if events == 'Results':
         filename = windows['-IN-'].get()
