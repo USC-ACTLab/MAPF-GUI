@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import random
+import sys
 
 import yaml
 import matplotlib
@@ -188,21 +189,108 @@ class Animation:
         return pos
 
 
+def read_scen_map(map_name):
+    # read the movingai format maps
+
+    with open(map_name, 'r') as f:
+        f.readline() # skip "type octile"
+        height = f.readline()
+        height = int(height.split()[-1])
+        width = f.readline()
+        width = int(width.split()[-1])
+
+        map_dict = {"dimensions": [width, height]}
+        obs = []
+        f.readline() # skip "map"
+
+        map_char = f.readlines()
+        for j in range(height):
+            line = map_char[j]
+            for i in range(width):
+                if line[i] == "@":
+                    obs.append([i, j])
+
+        map_dict["obstacles"] = obs
+    f.close()
+    return map_dict
+
+
+def read_scen_schedule(scen_name):
+    agents_dict = []
+    paths = []
+    # read the movingai scen schedule file
+    with open(scen_name, 'r') as f:
+        f.readline() # dump cost
+        f.readline()
+        n = 0
+
+        # get start/goal locations
+        for line in f.readlines():
+            if len(line):
+                path = []
+                line = line[line.find("path")+4:]
+                line = line.strip()
+                line = line.replace('(', '')
+                line = line.replace(')', '')
+                line = line.split(',')
+
+                for i in range(int(len(line)/2)):
+                    path.append([int(line[2*i])-1, int(line[2*i+1])-1])
+                start = path[0]
+                goal = path[-1]
+                agent_dict = {"goal": goal, "name": f"agent{n}", "start": start}
+                agents_dict.append(agent_dict)
+                n += 1
+                paths.append(path)
+        # agents_dict = {"agents": agents_dict}
+
+        # get calculated paths
+        paths_dict = {}
+        for i in range(len(paths)):
+            path_dict = []
+            for t in range(len(paths[i])):
+                path_dict.append({'x': paths[i][t][0], 'y': paths[i][t][1], 't': t})
+
+            paths_dict[f"agent{i}"] = path_dict
+        paths_dict = {'schedule': paths_dict}
+    return agents_dict, paths_dict
+
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("map", help="input file containing map")
     parser.add_argument("schedule", help="schedule for agents")
     parser.add_argument("--legacy", type=int, default=1, help="new map or legacy format (defult is legacy(1), 0 for new format)")
+    parser.add_argument("--scen", type=int, default=0, help="show(1) scen maps for bcp algorithm, 0 for not")
     parser.add_argument('--video', dest='video', default=None,
                         help="output video file (or leave empty to show on screen)")
     parser.add_argument("--speed", type=int, default=1, help="speedup-factor")
     args = parser.parse_args()
 
-    with open(args.map) as map_file:
-        map = yaml.load(map_file, Loader=yaml.FullLoader)
+    if not args.scen:
+        with open(args.map) as map_file:
+            map = yaml.load(map_file, Loader=yaml.FullLoader)
 
-    with open(args.schedule) as states_file:
-        schedule = yaml.load(states_file, Loader=yaml.FullLoader)
+        with open(args.schedule) as states_file:
+            schedule = yaml.load(states_file, Loader=yaml.FullLoader)
+
+    else:
+        # read scen format maps and schedule
+        map_dict = read_scen_map(args.map)
+        # with open("map_dict.yaml", 'w') as _map_dict_yaml:
+        #     yaml.dump(map_dict, _map_dict_yaml)
+        map_dict = {"map": map_dict}
+        # print(map_dict)
+
+        agents_dict, paths_dict = read_scen_schedule(args.schedule)
+        # print(paths_dict)
+        # with open("agents_dict.yaml", 'w') as _agents_dict:
+        #     yaml.dump(paths_dict, _agents_dict)
+        # exit()
+        map_dict['agents'] = agents_dict
+        map = map_dict
+        schedule = paths_dict
 
     if not args.legacy:
         # Using new map format. The map is in map["map_path"]
