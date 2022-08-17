@@ -7,3 +7,5 @@ grid.py
 *.png
 *.yaml
 *.mp4
+*.map
+*.scen

@@ -4,7 +4,7 @@ import os
 import subprocess
 import sys
 import textwrap
-
+import numpy as np
 import yaml
 
 sg.theme('Topanga')
@@ -58,7 +58,7 @@ def mapGenerate(x=1, y=1, obs=None, cmd_stack=None):
                     row.append(sg.Button('', size=(2, 2), pad=(0, 0), key=(i, j), button_color='white', metadata='Empty', tooltip=f"({i}, {j})"))
             layout.append(row)
 
-    layout2 = [[sg.Button('Obs'), sg.Button('Agent'), sg.Button('Undo'), sg.Button('Reset'), sg.Button('Done'), sg.Button('Done_2')],
+    layout2 = [[sg.Button('Obs'), sg.Button('Agent'), sg.Button('Undo'), sg.Button('Reset'), sg.Button('Done'), sg.Button('Done_2'), sg.Button('Scen')],
                [sg.In(default_text=str(os.getcwd()) + "/test.yaml", key='-SAVE-', enable_events=True), sg.FolderBrowse()]]
 
     window = sg.Window('mapGen', layout + layout2, finalize=True, location=(750, 600))
@@ -230,10 +230,54 @@ while True:
                 f2.close()
             else:
                 sg.popup('No agents or start and goal didn`t match!', text_color='red', location=window2.current_location())
+
+        if events == 'Scen':
+            if len(cmd_stack) and num_agent:
+                done_obs, done_start, done_goal = ([] for _ in range(3))
+                for i in range(len(cmd_stack)):
+                    if cmd_stack[i][0] == 'Obs':
+                        done_obs.append(cmd_stack[i][1])
+                    elif cmd_stack[i][0] == 'Start':
+                        done_start.append(cmd_stack[i][1])
+                    else:
+                        done_goal.append(cmd_stack[i][1])
+                    # cmd_stack.pop()
+                #  setup json
+                filename = window2['-SAVE-'].get()
+                filename_abs = filename.split('/')[-1]
+                map_path = filename_abs.split(".")[0] + '.map'
+                with open(filename, 'w') as f:
+                    f.write('version 1\n')
+                    for i in range(num_agent):
+                        f.write(f"1  {map_path}  {DIM_X}  {DIM_Y}  {done_start[i][0]}  {done_start[i][1]}  {done_goal[i][0]}  {done_goal[i][1]}  1.0\n")
+                f.close()
+                with open(map_path, 'w') as f2:
+                    f2.write(f"type octile\n")
+                    f2.write(f"height {DIM_Y}\n")
+                    f2.write(f"width {DIM_X}\n")
+                    f2.write(f"map\n")
+                    map_bool = np.zeros((int(DIM_Y), int(DIM_X)), dtype=bool)
+                    print('bool')
+                    for i in range(len(done_obs)):
+                        # f2.write(f"- [{done_obs[i][0]}, {done_obs[i][1]}]\n")
+                        map_bool[done_obs[i][1], done_obs[i][0]] = True
+                    for i in range(DIM_Y):
+                        line = ""
+                        for j in range(DIM_X):
+                            if map_bool[i, j]:
+                                line += '@'
+                            else:
+                                line += '.'
+                        f2.write(f'{line}\n')
+                f2.close()
+            else:
+                sg.popup('No agents or start and goal didn`t match!', text_color='red', location=window2.current_location())
+
         if events == '-SAVE-':
             a = window2[events].get()
             if ".yaml" not in a:
-                a = a + "/test.yaml"
+                if ".scen" not in a:
+                    a = a + "/test.yaml"
             window2[events].update(str(a))
 
     if events == 'Generator':
