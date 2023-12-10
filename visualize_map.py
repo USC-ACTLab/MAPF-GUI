@@ -67,7 +67,7 @@ class Animation:
         if map["map"]["obstacles"]:
             for o in map["map"]["obstacles"]:
                 x, y = o[0], o[1]
-                self.patches.append(Rectangle((x - .5, y - .5), 1, 1, facecolor='red', edgecolor='red'))
+                self.patches.append(Rectangle((x - .5, y - .5), 1, 1, facecolor='black', edgecolor='black'))
 
         # create agents:
         self.T = 0

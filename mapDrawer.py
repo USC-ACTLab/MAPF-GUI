@@ -14,8 +14,8 @@ layout = [[sg.Text('Simple MAPF map drawer')],
            sg.InputText(default_text='8', key='-X-', size=(3, 1)), sg.Text('Y'),
            sg.InputText(default_text='8', key='-Y-', size=(3, 1))],
           [sg.HSeparator()],
-          [sg.Text('Map format: '), sg.Radio('Legacy', 'Group1', key='-LEGACY-', default=True),
-           sg.Radio('NewFormat', 'Group1')],
+          [sg.Text('Map format: '), sg.Radio('Legacy', 'Group1', key='-LEGACY-'),
+           sg.Radio('NewFormat', 'Group1', default=True)],
           [sg.HSeparator()],
           [sg.Text('Map Editor')],
           [sg.In(key='-VIEW2-'), sg.FileBrowse(), sg.Button('Edit')],
@@ -58,7 +58,7 @@ def mapGenerate(x=1, y=1, obs=None, cmd_stack=None):
                     row.append(sg.Button('', size=(2, 2), pad=(0, 0), key=(i, j), button_color='white', metadata='Empty', tooltip=f"({i}, {j})"))
             layout.append(row)
 
-    layout2 = [[sg.Button('Obs'), sg.Button('Agent'), sg.Button('Undo'), sg.Button('Reset'), sg.Button('Done'), sg.Button('Done_2'), sg.Button('Scen')],
+    layout2 = [[sg.Button('Obs'), sg.Button('Agent'), sg.Button('Undo'), sg.Button('Reset'), sg.Button('SaveLegacy'), sg.Button('SaveYAML'), sg.Button('SaveScen')],
                [sg.In(default_text=str(os.getcwd()) + "/test.yaml", key='-SAVE-', enable_events=True), sg.FolderBrowse()]]
 
     window = sg.Window('mapGen', layout + layout2, finalize=True, location=(750, 600))
@@ -169,7 +169,7 @@ while True:
             else:
                 sg.popup('No agents or start and goal didn`t match!',text_color='red', location=window2.current_location())
 
-        if events == 'Done':  # save the map
+        if events == 'SaveLegacy':  # save the map
             if len(cmd_stack) and num_agent:
                 done_obs, done_start, done_goal = ([] for _ in range(3))
                 for i in range(len(cmd_stack)):
@@ -197,7 +197,7 @@ while True:
                 sg.popup('No agents or start and goal didn`t match!',text_color='red', location=window2.current_location())
 
             f.close()
-        if events == 'Done_2':  # save the map
+        if events == 'SaveYAML':  # save the map
             if len(cmd_stack) and num_agent:
                 done_obs, done_start, done_goal = ([] for _ in range(3))
                 for i in range(len(cmd_stack)):
@@ -231,7 +231,7 @@ while True:
             else:
                 sg.popup('No agents or start and goal didn`t match!', text_color='red', location=window2.current_location())
 
-        if events == 'Scen':
+        if events == 'SaveScen':
             if len(cmd_stack) and num_agent:
                 done_obs, done_start, done_goal = ([] for _ in range(3))
                 for i in range(len(cmd_stack)):
@@ -246,10 +246,12 @@ while True:
                 filename = window2['-SAVE-'].get()
                 filename_abs = filename.split('/')[-1]
                 map_path = filename_abs.split(".")[0] + '.map'
-                with open(filename, 'w') as f:
+                if 'scen' not in filename_abs:
+                    filename_abs = filename_abs.split(".")[0] + '.scen'
+                with open(filename_abs, 'w') as f:
                     f.write('version 1\n')
                     for i in range(num_agent):
-                        f.write(f"1  {map_path}  {DIM_X}  {DIM_Y}  {done_start[i][0]}  {done_start[i][1]}  {done_goal[i][0]}  {done_goal[i][1]}  1.0\n")
+                        f.write(f"1\t{map_path}\t{DIM_X}\t{DIM_Y}\t{done_start[i][0]}\t{done_start[i][1]}\t{done_goal[i][0]}\t{done_goal[i][1]}\t1.0\n")
                 f.close()
                 with open(map_path, 'w') as f2:
                     f2.write(f"type octile\n")
@@ -275,10 +277,10 @@ while True:
 
         if events == '-SAVE-':
             a = window2[events].get()
-            if ".yaml" not in a:
-                if ".scen" not in a:
-                    a = a + "/test.yaml"
-            window2[events].update(str(a))
+            # if ".yaml" not in a:
+            #     if ".scen" not in a:
+            #         a = a + "/test.yaml"
+            # window2[events].update(str(a))
 
     if events == 'Generator':
         DIM_X = int(values['-X-'])
