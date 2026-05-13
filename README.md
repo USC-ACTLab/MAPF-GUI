@@ -2,6 +2,15 @@ This is a simple GUI interface which helps to draw simple MAPF instance in yaml 
 
 ![demo](demo.gif)
 
+We have also developed many fancy variants of MAPF-GUI and they are way more powerful than the vanilla version above.
+
+MAPF-GUI using `imgui`:
+
+![demo](mapfgui_imgui.gif)
+
+MAPF-GUI using `guiqt`:
+
+![demo](imgui_guiqt.gif)
 
 To install the required packages:
 
